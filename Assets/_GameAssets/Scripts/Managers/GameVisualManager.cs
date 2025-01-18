@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -10,10 +11,30 @@ public class GameVisualManager : NetworkBehaviour
     [SerializeField] private Transform _circlePrefab;
     [SerializeField] private Transform _lineCompletePrefab;
 
+    private List<GameObject> _visualGameObjectList;
+
+    private void Awake() 
+    {
+        _visualGameObjectList = new List<GameObject>();    
+    }
+
     private void Start()
     {
         GameManager.Instance.OnClickedOnGridPosition += GameManager_OnClickedOnGridPosition;
         GameManager.Instance.OnGameWin += GameManager_OnGameWin;
+        GameManager.Instance.OnRematch += GameManager_OnRematch;
+    }
+
+    private void GameManager_OnRematch()
+    {
+        if(!NetworkManager.Singleton.IsServer) { return; }
+
+        foreach(GameObject visualGameObject in _visualGameObjectList)
+        {
+            Destroy(visualGameObject);
+        }
+
+        _visualGameObjectList.Clear();
     }
 
     private void GameManager_OnGameWin(GameManager.Line line, PlayerType winPlayerType)
@@ -33,6 +54,8 @@ public class GameVisualManager : NetworkBehaviour
                 (line._centerGridPosition.x, line._centerGridPosition.y), Quaternion.Euler(0f, 0f, eulerZ));
         
         lineCompleteTransform.GetComponent<NetworkObject>().Spawn(true);
+
+        _visualGameObjectList.Add(lineCompleteTransform.gameObject);
     }
 
     private void GameManager_OnClickedOnGridPosition(int x, int y, PlayerType playerType)
@@ -53,6 +76,8 @@ public class GameVisualManager : NetworkBehaviour
         Transform spawnedTransform 
             = Instantiate(prefab, GetGridWorldPosition(x, y), Quaternion.identity);
         spawnedTransform.GetComponent<NetworkObject>().Spawn(true);
+
+        _visualGameObjectList.Add(spawnedTransform.gameObject);
     }
 
     private Vector2 GetGridWorldPosition(int x, int y)

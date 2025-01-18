@@ -12,6 +12,9 @@ public class GameManager : NetworkBehaviour
     public event Action OnGameStarted;
     public event Action<Line, PlayerType> OnGameWin;
     public event Action OnCurrentPlayablePlayerTypeChanged;
+    public event Action OnRematch;
+    public event Action OnGameTied;
+    public event Action OnScoreChanged;
 
     public struct Line
     {
@@ -24,6 +27,8 @@ public class GameManager : NetworkBehaviour
     private NetworkVariable<PlayerType> _currentPlayablePlayerType = new NetworkVariable<PlayerType>();
     private PlayerType[,] _playerTypeArray;
     private List<Line> _lineList;
+    private NetworkVariable<int> _playerCrossScore = new NetworkVariable<int>();
+    private NetworkVariable<int> _playerCircleScore = new NetworkVariable<int>();
 
     private void Awake()
     {
@@ -113,6 +118,15 @@ public class GameManager : NetworkBehaviour
         {
             OnCurrentPlayablePlayerTypeChanged?.Invoke();
         };
+
+        _playerCrossScore.OnValueChanged += (int oldScore, int newScore) =>
+        {
+            OnScoreChanged?.Invoke();
+        };
+        _playerCircleScore.OnValueChanged += (int oldScore, int newScore) =>
+        {
+            OnScoreChanged?.Invoke();
+        };
     }
 
     private void NetworkManager_OnClientConnectedCallback(ulong clientId)
@@ -136,7 +150,7 @@ public class GameManager : NetworkBehaviour
     {
         if (playerType != _currentPlayablePlayerType.Value) { return; }
 
-        if(_playerTypeArray[x, y] != PlayerType.None) { return; }
+        if (_playerTypeArray[x, y] != PlayerType.None) { return; }
 
         _playerTypeArray[x, y] = playerType;
 
@@ -172,17 +186,53 @@ public class GameManager : NetworkBehaviour
 
     private void TestWinner()
     {
-        for(int i = 0; i < _lineList.Count; ++i)
+        for (int i = 0; i < _lineList.Count; ++i)
         {
             Line line = _lineList[i];
-            if(TestWinnerLine(line))
+            if (TestWinnerLine(line))
             {
                 Debug.Log("WIN!");
                 _currentPlayablePlayerType.Value = PlayerType.None;
-                TriggerOnGameWinRpc(i, _playerTypeArray[line._centerGridPosition.x, line._centerGridPosition.y]);
-                break;
+
+                PlayerType winPlayerType = _playerTypeArray[line._centerGridPosition.x, line._centerGridPosition.y];
+                switch (winPlayerType)
+                {
+                    case PlayerType.Cross:
+                        _playerCrossScore.Value++;
+                        break;
+                    case PlayerType.Circle:
+                        _playerCircleScore.Value++;
+                        break;
+                }
+
+                TriggerOnGameWinRpc(i, winPlayerType);
+                return;
             }
         }
+
+        bool hasTie = true;
+        for (int x = 0; x < _playerTypeArray.GetLength(0); ++x)
+        {
+            for (int y = 0; y < _playerTypeArray.GetLength(1); ++y)
+            {
+                if (_playerTypeArray[x, y] == PlayerType.None)
+                {
+                    hasTie = false;
+                    break;
+                }
+            }
+        }
+
+        if (hasTie)
+        {
+            TriggerOnGameTiedEventRpc();
+        }
+    }
+
+    [Rpc(SendTo.ClientsAndHost)]
+    private void TriggerOnGameTiedEventRpc()
+    {
+        OnGameTied?.Invoke();
     }
 
     [Rpc(SendTo.ClientsAndHost)]
@@ -193,6 +243,27 @@ public class GameManager : NetworkBehaviour
         OnGameWin?.Invoke(line, winPlayerType);
     }
 
+    [Rpc(SendTo.Server)]
+    public void RematchRpc()
+    {
+        for (int x = 0; x < _playerTypeArray.GetLength(0); ++x)
+        {
+            for (int y = 0; y < _playerTypeArray.GetLength(1); ++y)
+            {
+                _playerTypeArray[x, y] = PlayerType.None;
+            }
+        }
+
+        _currentPlayablePlayerType.Value = PlayerType.Cross;
+        TriggerOnRematchRpc();
+    }
+
+    [Rpc(SendTo.ClientsAndHost)]
+    private void TriggerOnRematchRpc()
+    {
+        OnRematch?.Invoke();
+    }
+
     public PlayerType GetLocalPlayerType()
     {
         return _localPlayerType;
@@ -201,5 +272,11 @@ public class GameManager : NetworkBehaviour
     public PlayerType GetCurrentPlayablePlayerType()
     {
         return _currentPlayablePlayerType.Value;
+    }
+
+    public void GetScores(out int playerCrossScore, out int playerCircleScore)
+    {
+        playerCrossScore = _playerCrossScore.Value;
+        playerCircleScore = _playerCircleScore.Value;
     }
 }
