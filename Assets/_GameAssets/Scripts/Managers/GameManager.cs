@@ -15,6 +15,7 @@ public class GameManager : NetworkBehaviour
     public event Action OnRematch;
     public event Action OnGameTied;
     public event Action OnScoreChanged;
+    public event Action OnPlacedObject;
 
     public struct Line
     {
@@ -153,6 +154,7 @@ public class GameManager : NetworkBehaviour
         if (_playerTypeArray[x, y] != PlayerType.None) { return; }
 
         _playerTypeArray[x, y] = playerType;
+        TriggerOnPlacedObjectRpc();
 
         OnClickedOnGridPosition?.Invoke(x, y, playerType);
 
@@ -164,6 +166,12 @@ public class GameManager : NetworkBehaviour
         };
 
         TestWinner();
+    }
+
+    [Rpc(SendTo.ClientsAndHost)]
+    private void TriggerOnPlacedObjectRpc()
+    {
+        OnPlacedObject?.Invoke();
     }
 
     private bool TestWinnerLine(PlayerType aPlayerType, PlayerType bPlayerType, PlayerType cPlayerType)
