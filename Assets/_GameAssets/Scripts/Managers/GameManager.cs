@@ -187,17 +187,12 @@ public class GameManager : NetworkBehaviour
             playerType = playerType,
         });
 
-        switch (currentPlayablePlayerType.Value)
+        currentPlayablePlayerType.Value = currentPlayablePlayerType.Value switch
         {
-            default:
-            case PlayerType.Cross:
-                currentPlayablePlayerType.Value = PlayerType.Circle;
-                break;
-            case PlayerType.Circle:
-                currentPlayablePlayerType.Value = PlayerType.Cross;
-                break;
-        }
-
+            PlayerType.Circle => PlayerType.Cross,
+            PlayerType.Cross => PlayerType.Circle,
+            _ => PlayerType.Circle,
+        };
         TestWinner();
     }
 

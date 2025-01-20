@@ -95,7 +95,7 @@ public class LobbyListUI : MonoBehaviour
         gameObject.SetActive(false);
     }
 
-    private void Show()
+    public void Show()
     {
         gameObject.SetActive(true);
     }
