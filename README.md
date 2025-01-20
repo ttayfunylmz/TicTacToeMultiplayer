@@ -9,7 +9,7 @@
 <h2 align="center">🐧 Features in This Game 🐧</h2>
 <h4 align="center">🌂 Nothing Fancy, Just a Simple Tic Tac Toe Game 🌂</h4>
 
-https://github.com/user-attachments/assets/be2acc43-1d97-4315-adb8-16e020edba2f
+https://github.com/user-attachments/assets/539f9af9-28ce-4396-bbe3-031a8e89100a
 
 <h2 align="center">👨‍💻 Unity Version 👨‍💻</h2>
 <h4 align="center">I used Unity version <b>6000.0.31f</b> for this project. However, you can open it with any Unity version since it is a small project. But, I recommend using Unity 6.</h4>
